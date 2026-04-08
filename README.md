@@ -28,7 +28,6 @@ A self-hosted Docker application for consolidating and monitoring every IP addre
 git clone https://github.com/psybernoid/him   # or extract the tarball
 cd him
 mkdir data
-docker compose build
 docker compose up -d
 ```
 
@@ -41,10 +40,7 @@ Access at **http://your-host:8080**, then click **⚙ CONFIG** to add your sourc
 ```yaml
 services:
   him:
-    image: him:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/psybernoid/him:latest
     container_name: him
     restart: unless-stopped
     ports:
