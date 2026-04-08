@@ -24,19 +24,6 @@ A self-hosted Docker application for consolidating and monitoring every IP addre
 
 ## Quick Start
 
-```bash
-git clone https://github.com/psybernoid/him   # or extract the tarball
-cd him
-mkdir data
-docker compose up -d
-```
-
-Access at **http://your-host:8080**, then click **⚙ CONFIG** to add your sources.
-
----
-
-## docker-compose.yml
-
 ```yaml
 services:
   him:
@@ -57,6 +44,10 @@ services:
     cap_add:
       - NET_RAW   # required for ICMP ping
 ```
+
+Access at **http://your-host:8080**, then click **⚙ CONFIG** to add your sources.
+
+---
 
 The `./data` directory stores `him.db` (SQLite) and `secret.key` (Fernet encryption key). Back both up to preserve configuration.
 
