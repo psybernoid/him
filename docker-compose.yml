@@ -1,0 +1,21 @@
+services:
+  him:
+    image: him:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: him
+    restart: unless-stopped
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./data:/data
+      # Optional: mount TLS certs for Docker hosts using TLS
+      # - ./certs:/certs:ro
+    environment:
+      # ── Authentication (optional) ─────────────────────────────────────────
+      # Set both to enable HTTP Basic Auth. Leave empty to disable.
+      HIM_USERNAME: ""
+      HIM_PASSWORD: ""
+    cap_add:
+      - NET_RAW

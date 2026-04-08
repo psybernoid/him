@@ -1,0 +1,694 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 80% 10%, rgba(61,220,132,0.04) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 10% 90%, rgba(77,166,255,0.03) 0%, transparent 60%),
+    var(--bg-void);
+}
+
+/* ── LOADING ─────────────────────────────────── */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-void);
+}
+.loadingInner {
+  text-align: center;
+}
+.loadingLogo {
+  font-family: var(--font-mono);
+  font-size: 72px;
+  color: var(--green-bright);
+  text-shadow: 0 0 40px rgba(61,220,132,0.6), 0 0 80px rgba(61,220,132,0.3);
+  letter-spacing: 24px;
+  margin-bottom: 24px;
+}
+.loadingText {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  letter-spacing: 3px;
+}
+
+/* ── HEADER ──────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.headerLeft { display: flex; align-items: center; gap: 32px; }
+.headerRight { display: flex; align-items: center; gap: 24px; }
+
+.logo { display: flex; flex-direction: column; gap: 2px; }
+.logoHim {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--green-bright);
+  text-shadow: 0 0 20px rgba(61,220,132,0.5);
+  line-height: 1;
+  letter-spacing: 6px;
+}
+.logoSub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-secondary);
+  letter-spacing: 4px;
+}
+
+.headerMeta { display: flex; align-items: center; gap: 20px; }
+.metaItem {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.metaDot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.settingsBtn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.settingsBtn:hover {
+  border-color: var(--green-mid);
+  color: var(--green-bright);
+}
+
+.refreshBtn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--green-mid);
+  color: var(--green-bright);
+  transition: all 0.2s;
+}
+.refreshBtn:hover:not(:disabled) {
+  background: rgba(61,220,132,0.1);
+  box-shadow: 0 0 12px rgba(61,220,132,0.2);
+}
+.refreshBtn:disabled { opacity: 0.5; cursor: default; }
+.refreshBtn.refreshing {
+  border-color: var(--amber-dim);
+  color: var(--amber);
+  animation: borderPulse 1.5s ease-in-out infinite;
+}
+@keyframes borderPulse {
+  0%, 100% { border-color: var(--amber-dim); }
+  50% { border-color: var(--amber); box-shadow: 0 0 12px rgba(255,179,71,0.3); }
+}
+
+/* ── STATS ───────────────────────────────────── */
+.stats {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.statCard {
+  flex: 1;
+  background: var(--bg-panel);
+  padding: 14px 20px;
+  border-top: 2px solid transparent;
+  transition: background 0.2s;
+}
+.statCard:hover { background: var(--bg-card); }
+.statValue {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.statLabel {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+/* ── VLANS STRIP ─────────────────────────────── */
+.vlansStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+.vlanChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 11px;
+}
+.vlanChip:hover { border-color: var(--green-mid); background: var(--bg-card-hover); }
+.vlanChipActive {
+  border-color: var(--green-bright) !important;
+  background: rgba(61,220,132,0.08) !important;
+  box-shadow: 0 0 10px rgba(61,220,132,0.15);
+}
+.vlanClear {
+  font-size: 10px;
+  color: var(--green-bright);
+  margin-left: 2px;
+}
+.vlanId {
+  font-family: var(--font-mono);
+  color: var(--green-bright);
+  font-size: 10px;
+}
+.vlanName { color: var(--text-primary); }
+.vlanSubnet {
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+/* ── CONTROLS ────────────────────────────────── */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.searchWrap {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  padding: 0 12px;
+  transition: border-color 0.2s;
+}
+.searchWrap:focus-within { border-color: var(--green-mid); }
+.searchIcon {
+  color: var(--text-secondary);
+  font-size: 18px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.searchInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 12px;
+  letter-spacing: 1px;
+  padding: 9px 0;
+}
+.searchInput::placeholder { color: var(--text-dim); }
+.clearFiltersBtn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 8px 14px;
+  background: rgba(255,77,77,0.08);
+  border: 1px solid var(--red-dim);
+  color: var(--red);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.clearFiltersBtn:hover {
+  background: rgba(255,77,77,0.15);
+  border-color: var(--red);
+}
+
+.clearBtn {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  padding: 4px;
+  transition: color 0.15s;
+}
+.clearBtn:hover { color: var(--red); }
+
+.filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.filterSelect {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236a9a7a'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.filterSelect:focus, .filterSelect:hover { border-color: var(--green-mid); color: var(--text-primary); }
+
+/* ── TABLE ───────────────────────────────────── */
+.tableWrap {
+  flex: 1;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.th, .thStatus {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-header);
+  position: sticky;
+  top: 0;
+  white-space: nowrap;
+  user-select: none;
+}
+.thStatus { width: 40px; }
+.sortable { cursor: pointer; }
+.sortable:hover { color: var(--text-secondary); }
+.sortIndicator { color: var(--green-bright); margin-left: 4px; }
+
+.hostRow {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+  animation: fadeIn 0.2s ease-out;
+}
+.hostRow:hover { background: var(--bg-card-hover); }
+.hostRow.online {}
+.hostRow.offline { opacity: 0.65; }
+.hostRow.unknown { opacity: 0.8; }
+
+.hostRow td {
+  padding: 10px 14px;
+  vertical-align: middle;
+}
+
+.statusCell { width: 40px; text-align: center; }
+.dot {
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot_online {
+  background: var(--green-bright);
+  box-shadow: 0 0 6px rgba(61,220,132,0.8);
+  animation: pulse-green 2s ease-in-out infinite;
+}
+.dot_offline { background: var(--red); opacity: 0.7; }
+.dot_unknown { background: var(--text-dim); }
+
+.ipCell { min-width: 140px; }
+.ipAddr {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--green-bright);
+}
+
+.hostnameCell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.typeCell { white-space: nowrap; }
+.typeTag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 3px 7px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+
+.networkCell {
+  color: var(--text-secondary);
+  font-size: 12px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vlanCell {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.latencyCell { white-space: nowrap; }
+.latency {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--amber);
+}
+.latencyFast {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.sourcesCell { max-width: 200px; }
+.mergedTag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-left: 2px;
+  cursor: default;
+  vertical-align: middle;
+}
+
+.sourceTag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  border: 1px solid;
+  margin-right: 4px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.actionCell { width: 48px; text-align: center; }
+.pingBtn {
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+.pingBtn:hover:not(:disabled) {
+  color: var(--green-bright);
+  border-color: var(--green-dim);
+}
+.pingBtn:disabled { opacity: 0.3; cursor: default; }
+
+.expandedRow {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+}
+.expandedContent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 32px;
+  padding: 12px 54px;
+}
+.expandedContent > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.extraLabel {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+.extraMono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.emptyRow {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 60px 24px;
+}
+
+/* ── FOOTER ──────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  background: var(--bg-header);
+  border-top: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+}
+
+/* ── PORTS ───────────────────────────────────── */
+.portsSection {
+  padding: 10px 54px 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.portsHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.portScanBtn {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.portScanBtn:hover:not(:disabled) {
+  border-color: var(--green-mid);
+  color: var(--green-bright);
+}
+.portScanBtn:disabled { opacity: 0.4; cursor: default; }
+.portsScanningMsg {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--amber);
+  letter-spacing: 1px;
+}
+.portsEmpty {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+.portsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.portChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  transition: border-color 0.15s;
+}
+.portChip:hover { border-color: var(--green-mid); }
+.portNum {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--green-bright);
+  font-weight: 600;
+}
+.portName {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* ── IP ASSIGNMENT BADGE ─────────────────────── */
+.assignBadge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+  text-align: center;
+  border-radius: 2px;
+  margin-left: 5px;
+  vertical-align: middle;
+  cursor: default;
+}
+.assign_static   { background: rgba(77,166,255,0.15); color: #4da6ff; border: 1px solid rgba(77,166,255,0.4); }
+.assign_reserved { background: rgba(192,132,252,0.15); color: #c084fc; border: 1px solid rgba(192,132,252,0.4); }
+.assign_dhcp     { background: rgba(106,154,122,0.15); color: var(--text-secondary); border: 1px solid var(--border-bright); }
+
+/* ── MAIN TABS ───────────────────────────────── */
+.mainTabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-header);
+}
+.mainTab {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  padding: 14px 28px;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mainTab:hover { color: var(--text-secondary); }
+.mainTabActive {
+  color: var(--green-bright);
+  border-bottom-color: var(--green-bright);
+}
+
+/* ── MAPS TAB ────────────────────────────────── */
+.mapsTab {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+.mapsHint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  margin-bottom: 20px;
+}
+.mapsEmpty {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  padding: 60px;
+  text-align: center;
+}
+.mapsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.mapCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mapCard:hover {
+  border-color: var(--green-mid);
+  background: var(--bg-card-hover);
+  box-shadow: 0 0 14px rgba(61,220,132,0.08);
+}
+.mapCardHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.mapVlanId {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--green-bright);
+}
+.mapVlanName {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.mapCardSubnet {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.mapCardStats {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.mapStatOnline  { font-family: var(--font-mono); font-size: 10px; color: var(--green-bright); }
+.mapStatOffline { font-family: var(--font-mono); font-size: 10px; color: var(--red); }
+.mapStatFree    { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.mapCardDhcp {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  color: var(--amber);
+  margin-top: 2px;
+}
+.mapCardArrow {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--text-dim);
+  transition: color 0.15s, transform 0.15s;
+}
+.mapCard:hover .mapCardArrow {
+  color: var(--green-bright);
+  transform: translateY(-50%) translateX(3px);
+}
