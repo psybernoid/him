@@ -1,9 +1,6 @@
 services:
   him:
-    image: him:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/psybernoid/him:latest
     container_name: him
     restart: unless-stopped
     ports:
