@@ -445,14 +445,15 @@ export default function App() {
           <div className={styles.vlansStrip}>
             {data.vlans.filter(v => v.subnet).map(v => {
               const active = filterSubnet === v.subnet
+              const vlanLabel = v.id ? `VLAN ${v.id}` : v.name
               return (
                 <div
-                  key={`${v.id}-${v.subnet}`}
+                  key={v.uid || `${v.id}-${v.subnet}`}
                   className={`${styles.vlanChip} ${active ? styles.vlanChipActive : ''}`}
                   onClick={() => setFilterSubnet(active ? null : v.subnet)}
                   title={`Filter to ${v.subnet}${v.purpose ? ` (${v.purpose})` : ''}`}
                 >
-                  <span className={styles.vlanId}>VLAN {v.id}</span>
+                  <span className={styles.vlanId}>{vlanLabel}</span>
                   <span className={styles.vlanName}>{v.name}</span>
                   <span className={styles.vlanSubnet}>{v.subnet}</span>
                   {active && <span className={styles.vlanClear}>✕</span>}
@@ -588,12 +589,12 @@ export default function App() {
 
                   return (
                     <div
-                      key={`${v.id}-${v.subnet}`}
+                      key={v.uid || `${v.id}-${v.subnet}`}
                       className={styles.mapCard}
                       onClick={() => setSubnetMapVlan(v)}
                     >
                       <div className={styles.mapCardHeader}>
-                        <span className={styles.mapVlanId}>VLAN {v.id}</span>
+                        <span className={styles.mapVlanId}>{v.id ? `VLAN ${v.id}` : v.name}</span>
                         <span className={styles.mapVlanName}>{v.name}</span>
                       </div>
                       <div className={styles.mapCardSubnet}>{v.subnet}</div>

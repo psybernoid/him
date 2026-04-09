@@ -47,14 +47,29 @@ class UnifiCollector:
             networks_raw = await self._get(session, f"/api/s/{self.site}/rest/networkconf")
             network_by_id = {}
             for net in networks_raw:
-                nid = net.get("_id", "")
+                nid     = net.get("_id", "")
                 vlan_id = net.get("vlan")
-                subnet = net.get("ip_subnet", "")
-                name = net.get("name", "")
+                subnet  = net.get("ip_subnet", "")
+                name    = net.get("name", "")
                 purpose = net.get("purpose", "")
                 network_by_id[nid] = {"name": name, "vlan": vlan_id, "subnet": subnet}
+
+                # Skip networks without a real subnet
+                if not subnet:
+                    continue
+
+                # Skip VPN client/peer networks — these are point-to-point tunnels
+                # assigned to VLAN 1 by default in UniFi but are not actual subnets.
+                # Identify by purpose or by /32 prefix (single-host routes).
+                if purpose in ("vpn-client", "vpn-server", "wg-client", "wg-server"):
+                    continue
+                bits = int(subnet.split("/")[1]) if "/" in subnet else 0
+                if bits >= 32:
+                    continue  # /32 = single host tunnel endpoint, not a usable subnet
+
                 vlans.append({
-                    "id":           vlan_id if vlan_id is not None else 1,
+                    "uid":          nid,          # unique across all networks
+                    "id":           vlan_id if vlan_id is not None else 0,
                     "name":         name,
                     "subnet":       subnet,
                     "purpose":      purpose,

@@ -235,23 +235,18 @@ async def portscan(ip: str):
             break
     return {"ip": ip, "ports": ports}
 
-@app.get("/api/subnet-map/{vlan_id}")
-async def subnet_map(vlan_id: int):
+@app.get("/api/subnet-map/{uid}")
+async def subnet_map(uid: str):
     """
-    Returns a full IP map for the given VLAN's subnet.
-    Each IP entry has a status:
-      'online'   — host currently online
-      'offline'  — host seen before but currently offline
-      'dhcp'     — falls within UniFi DHCP range
-      'free'     — unassigned
-    Also marks gateway and network/broadcast addresses.
+    Returns a full IP map for the given network uid.
+    uid is the UniFi internal _id string, which uniquely identifies a network.
     """
-    vlan = next((v for v in state["vlans"] if v["id"] == vlan_id), None)
+    vlan = next((v for v in state["vlans"] if v.get("uid") == uid), None)
     if not vlan:
-        raise HTTPException(404, f"VLAN {vlan_id} not found")
+        raise HTTPException(404, f"Network {uid} not found")
     subnet = vlan.get("subnet", "")
     if not subnet:
-        raise HTTPException(400, f"VLAN {vlan_id} has no subnet defined")
+        raise HTTPException(400, f"Network {uid} has no subnet defined")
 
     base_str, bits_str = subnet.split("/")
     bits = int(bits_str)

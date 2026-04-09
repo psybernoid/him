@@ -69,7 +69,7 @@ export default function SubnetMap({ vlan, onClose }) {
     setLoading(true)
     setError(null)
     try {
-      const r = await fetch(`/api/subnet-map/${vlan.id}`)
+      const r = await fetch(`/api/subnet-map/${encodeURIComponent(vlan.uid || vlan.id)}`)
       if (!r.ok) {
         const d = await r.json()
         throw new Error(d.detail || `HTTP ${r.status}`)
@@ -80,7 +80,7 @@ export default function SubnetMap({ vlan, onClose }) {
     } finally {
       setLoading(false)
     }
-  }, [vlan.id])
+  }, [vlan.uid || vlan.id])
 
   useEffect(() => { load() }, [load])
 
@@ -109,7 +109,7 @@ export default function SubnetMap({ vlan, onClose }) {
               SUBNET MAP
             </div>
             <div className={s.subtitle}>
-              {vlan.name} · {vlan.subnet}
+              {vlan.id ? `VLAN ${vlan.id} · ` : ""}{vlan.name} · {vlan.subnet}
               {vlan.dhcp_enabled && vlan.dhcp_start && (
                 <span className={s.dhcpRange}>
                   · DHCP {vlan.dhcp_start} – {vlan.dhcp_stop}
