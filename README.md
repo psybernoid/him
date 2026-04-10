@@ -68,7 +68,7 @@ HIM supports **UniFi API Keys** (recommended, UniFi OS 3.x+) or username/passwor
 #### API Key (recommended)
 
 1. Log in to your UniFi OS console (UDM / UDM-Pro / UDM-SE / Cloud Key Gen2+)
-2. Go to **Settings → Control Plane → API Keys**
+2. Go to **Integrations**
 3. Click **Create API Key**, give it a name (e.g. `him-readonly`), copy the key
 4. In HIM Config → UniFi: enter your controller IP, select **API KEY**, paste the key
 
