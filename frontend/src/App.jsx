@@ -137,14 +137,23 @@ function HostRow({ host, onPing, pingLoading }) {
           )}
         </td>
         <td className={styles.actionCell}>
-          <button
-            className={styles.pingBtn}
-            onClick={e => { e.stopPropagation(); onPing(host.ip) }}
-            disabled={pingLoading || !host.ip}
-            title="Ping"
-          >
-            {pingLoading ? '…' : '⟳'}
-          </button>
+          {host.online_authoritative ? (
+            <span
+              className={styles.sourceStatus}
+              title="Online status reported by Docker/Proxmox — ICMP ping not used"
+            >
+              ✓
+            </span>
+          ) : (
+            <button
+              className={styles.pingBtn}
+              onClick={e => { e.stopPropagation(); onPing(host.ip) }}
+              disabled={pingLoading || !host.ip}
+              title="Ping"
+            >
+              {pingLoading ? '…' : '⟳'}
+            </button>
+          )}
           {host.ip && (
             <button
               className={styles.pingBtn}

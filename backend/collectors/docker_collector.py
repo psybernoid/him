@@ -217,16 +217,18 @@ class DockerCollector:
         return hosts
 
     def _make(self, *, ip, cname, image, cstate, cid, network, driver, ports, extra) -> Dict:
+        running = cstate == "running"
         return {
-            "ip":       ip,
-            "hostname": cname,
-            "mac":      "",
-            "network":  network,
-            "vlan":     None,
-            "sources":  [f"docker:{self.name}"],
-            "type":     "container",
-            "online":   cstate == "running",
-            "ports":    ports,
+            "ip":                 ip,
+            "hostname":           cname,
+            "mac":                "",
+            "network":            network,
+            "vlan":               None,
+            "sources":            [f"docker:{self.name}"],
+            "type":               "container",
+            "online":             running,
+            "online_authoritative": running,   # don't let ping overwrite this
+            "ports":              ports,
             "extra": {
                 "docker_host":  self.name,
                 "container_id": cid[:12],

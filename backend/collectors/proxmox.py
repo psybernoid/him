@@ -328,14 +328,15 @@ class ProxmoxCollector:
 
     def _make_host(self, *, ip, hostname, htype, online, network, extra=None, ip_assignment="unknown") -> dict:
         return {
-            "ip":            ip,
-            "hostname":      hostname,
-            "mac":           "",
-            "network":       network,
-            "vlan":          None,
-            "sources":       [f"proxmox:{self.name}"],
-            "type":          htype,
-            "online":        online,
-            "ip_assignment": ip_assignment,
-            "extra":         {**(extra or {}), "proxmox_host": self.name},
+            "ip":                   ip,
+            "hostname":             hostname,
+            "mac":                  "",
+            "network":              network,
+            "vlan":                 None,
+            "sources":              [f"proxmox:{self.name}"],
+            "type":                 htype,
+            "online":               online,
+            "online_authoritative": online and htype in ("vm", "lxc", "container"),
+            "ip_assignment":        ip_assignment,
+            "extra":                {**(extra or {}), "proxmox_host": self.name},
         }

@@ -418,6 +418,17 @@
 }
 
 .actionCell { width: 48px; text-align: center; }
+.sourceStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  color: var(--green-dim);
+  cursor: default;
+}
+
 .pingBtn {
   background: transparent;
   color: var(--text-secondary);

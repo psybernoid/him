@@ -174,13 +174,31 @@ async def collect_all():
     asyncio.create_task(run_pings())
 
 async def run_pings():
-    ips = [h["ip"] for h in state["hosts"] if h.get("ip")]
-    checker = PingChecker()
-    results = await checker.ping_all(ips)
+    """
+    Only ping hosts whose online status cannot be determined from the source.
+    Hosts with online_authoritative=True (running Docker containers, running
+    Proxmox VMs/LXCs) are skipped — their state is definitively known and
+    pinging bridge-network containers would always return false negatives.
+    """
+    pingable = []
     for h in state["hosts"]:
         ip = h.get("ip")
-        if ip and ip in results:
-            h["online"] = results[ip]["online"]
+        if not ip:
+            continue
+        if h.get("online_authoritative"):
+            # Source says running — trust it, don't ping
+            continue
+        pingable.append(ip)
+
+    if not pingable:
+        return
+
+    checker = PingChecker()
+    results = await checker.ping_all(pingable)
+    for h in state["hosts"]:
+        ip = h.get("ip")
+        if ip and ip in results and not h.get("online_authoritative"):
+            h["online"]     = results[ip]["online"]
             h["latency_ms"] = results[ip].get("latency_ms")
 
 async def periodic_refresh():
@@ -217,12 +235,19 @@ async def trigger_refresh(background_tasks: BackgroundTasks):
 
 @app.get("/api/ping/{ip}")
 async def ping_single(ip: str):
+    host = next((h for h in state["hosts"] if h.get("ip") == ip), None)
+    if host and host.get("online_authoritative"):
+        return {
+            "ip":        ip,
+            "online":    True,
+            "latency_ms": None,
+            "note":      "Status reported by source (Docker/Proxmox); ICMP skipped",
+        }
     checker = PingChecker()
-    result = await checker.ping_one(ip)
-    for h in state["hosts"]:
-        if h.get("ip") == ip:
-            h["online"] = result["online"]
-            h["latency_ms"] = result.get("latency_ms")
+    result  = await checker.ping_one(ip)
+    if host:
+        host["online"]     = result["online"]
+        host["latency_ms"] = result.get("latency_ms")
     return result
 
 @app.get("/api/portscan/{ip}")
