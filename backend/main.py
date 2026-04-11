@@ -17,7 +17,7 @@ from .collectors.proxmox import ProxmoxCollector
 from .collectors.ping import PingChecker
 from .collectors.portscan import scan_ports, COMMON_PORTS
 
-HIM_VERSION = "18"
+HIM_VERSION = "1.19"
 
 def _ip_to_int(ip: str) -> int:
     p = ip.split(".")
@@ -94,9 +94,13 @@ async def collect_all():
         except Exception as e:
             state["errors"].append(f"UniFi: {e}")
 
+    # UniFi runs first — its subnets become the source of truth for
+    # what's "routable" when Docker collectors run below.
+    known_subnets = [v["subnet"] for v in state.get("vlans", []) if v.get("subnet")]
+
     for dhost in store.get_docker_hosts():
         try:
-            dc = DockerCollector(dhost)
+            dc = DockerCollector(dhost, known_subnets=known_subnets)
             hosts = await dc.collect()
             all_hosts.extend(hosts)
         except Exception as e:
@@ -154,26 +158,18 @@ async def collect_all():
 
     state["hosts"] = list(ip_map.values())
 
-    # Filter to only IPs within known UniFi subnets (removes docker bridge IPs,
-    # link-local addresses, and other noise not in the homelab address space).
-    # Only applies when UniFi is configured and has returned VLANs.
-    known_subnets = [v["subnet"] for v in state.get("vlans", []) if v.get("subnet")]
+    # Filter to only IPs within known UniFi subnets. Since the Docker collector
+    # already uses UniFi subnets as source of truth for routable vs internal,
+    # this mainly catches any remaining noise (link-local, etc.)
     if known_subnets:
         def in_any_subnet(h):
             ip = h.get("ip")
             if not ip:
-                return True   # keep no-IP hosts (stopped VMs, no-port containers)
-            # For containers: if it has bridge_on_host or host network_mode,
-            # the IP is the Docker host's own IP which is already in a known subnet —
-            # pass it through without checking (avoids double-lookup).
-            # For containers with a direct routable IP (macvlan), check normally.
-            # For containers that somehow got an internal bridge IP, filter them out.
+                return True   # keep no-IP hosts
             if h.get("type") == "container":
                 extra = h.get("extra", {})
                 if extra.get("bridge_on_host") or extra.get("network_mode") == "host":
-                    return True   # IP is the Docker host's IP, already routable
-                # Fall through to normal subnet check — macvlan containers should
-                # be in a known subnet; internal bridge IPs (172.16-31.x.x etc) won't be
+                    return True   # host IP, already routable
             for subnet in known_subnets:
                 if _ip_in_subnet(ip, subnet):
                     return True
@@ -434,7 +430,7 @@ async def test_docker(hid: int):
     if not h:
         raise HTTPException(404, "Host not found")
     try:
-        dc = DockerCollector(h)
+        dc = DockerCollector(h, known_subnets=[v["subnet"] for v in state.get("vlans", []) if v.get("subnet")])
         result = await dc.collect()
         return {"ok": True, "containers": len(result)}
     except Exception as e:

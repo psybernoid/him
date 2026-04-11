@@ -3,6 +3,19 @@ import ssl
 from typing import List, Dict, Any, Optional
 
 
+def _ip_in_subnet(ip: str, subnet: str) -> bool:
+    try:
+        base, bits = subnet.split("/")
+        bits = int(bits)
+        mask = (0xFFFFFFFF << (32 - bits)) & 0xFFFFFFFF
+        def to_int(a):
+            p = a.split(".")
+            return sum(int(x) * (256 ** (3 - i)) for i, x in enumerate(p))
+        return (to_int(ip) & mask) == (to_int(base) & mask)
+    except Exception:
+        return False
+
+
 # Docker default bridge ranges that are internal-only and not routable
 # on the homelab network. Any container IP in these ranges should be
 # treated as "bridge container" and reported under the host IP instead.
@@ -86,16 +99,35 @@ class DockerCollector:
     Required socket proxy permissions: CONTAINERS=1, NETWORKS=1 (optional)
     """
 
-    def __init__(self, config: Dict[str, Any]):
-        self.name      = config.get("name", config.get("host", "docker"))
-        self.host      = config["host"]       # the Docker host's routable IP
-        self.port      = int(config.get("port", 2375))
-        self.tls       = bool(config.get("tls", False))
-        self.ca        = config.get("ca")
-        self.cert      = config.get("cert")
-        self.key       = config.get("key")
-        scheme         = "https" if self.tls else "http"
-        self.base_url  = f"{scheme}://{self.host}:{self.port}"
+    def __init__(self, config: Dict[str, Any], known_subnets: List[str] = None):
+        self.name         = config.get("name", config.get("host", "docker"))
+        self.host         = config["host"]
+        self.port         = int(config.get("port", 2375))
+        self.tls          = bool(config.get("tls", False))
+        self.ca           = config.get("ca")
+        self.cert         = config.get("cert")
+        self.key          = config.get("key")
+        self.known_subnets = known_subnets or []
+        scheme            = "https" if self.tls else "http"
+        self.base_url     = f"{scheme}://{self.host}:{self.port}"
+
+    def _is_routable(self, ip: str, driver: str) -> bool:
+        """
+        Return True if this IP is routable on the homelab network.
+        Uses UniFi subnets as source of truth when available.
+        macvlan/ipvlan driver always wins — those are explicitly routable by design.
+        Falls back to _is_docker_internal heuristic if no subnets are known.
+        """
+        if not ip:
+            return False
+        # macvlan/ipvlan = always routable, whatever the IP range
+        if driver in ("macvlan", "ipvlan"):
+            return True
+        # If we have UniFi subnets, use them as the definitive test
+        if self.known_subnets:
+            return any(_ip_in_subnet(ip, s) for s in self.known_subnets)
+        # Fallback: heuristic range check
+        return not _is_docker_internal(ip)
 
     def _connector(self):
         if self.tls:
@@ -128,18 +160,28 @@ class DockerCollector:
                             "subnet": ipam[0].get("Subnet", "") if ipam else "",
                         }
 
-            # ── Container list ────────────────────────────────────────────────
+            # ── Pass 1: inspect all containers, collect details ───────────────
             containers = await self._get_list(session, "/containers/json?all=true")
             if not containers:
                 return hosts
 
+            # name → {id, ip, details} for service: resolution
+            container_details: Dict[str, Dict] = {}
+            # pending: containers with network_mode=service:<name> to resolve after pass 1
+            pending_service: List[Dict] = []
+            container_id_to_name: Dict[str, str] = {}  # id/prefix -> name
+
             for c in containers:
-                cid   = c.get("Id", "")
-                cname = (c.get("Names") or ["unknown"])[0].lstrip("/")
+                cid    = c.get("Id", "")
+                cname  = (c.get("Names") or ["unknown"])[0].lstrip("/")
                 cstate = c.get("State", "")
-                image = c.get("Image", "")
+                image  = c.get("Image", "")
                 if not cid:
                     continue
+
+                # Register full ID and 12-char prefix for service: resolution
+                container_id_to_name[cid]      = cname
+                container_id_to_name[cid[:12]] = cname
 
                 details = await self._get_dict(session, f"/containers/{cid}/json")
                 if not details:
@@ -150,15 +192,20 @@ class DockerCollector:
                 net_mode        = host_config.get("NetworkMode", "bridge")
                 net_settings    = details.get("NetworkSettings", {}).get("Networks", {})
 
-                # Debug: log what we see for each container
-                net_summary = {
-                    n: {"ip": d.get("IPAddress",""), "driver": net_info.get(d.get("NetworkID",""),{}).get("driver","")}
-                    for n, d in net_settings.items()
-                }
-                print(f"[Docker:{self.name}] container={cname} mode={net_mode} ports={[p['port'] for p in published_ports]} nets={net_summary}")
-                # ── Classify by network mode ──────────────────────────────────
+                # ── service:<name> network mode ───────────────────────────────
+                # This container shares another container's network stack.
+                # Defer it — we need to resolve the primary container's IP first.
+                if net_mode.startswith("service:"):
+                    primary_name = net_mode[len("service:"):]
+                    pending_service.append({
+                        "cid": cid, "cname": cname, "cstate": cstate,
+                        "image": image, "net_mode": net_mode,
+                        "primary_name": primary_name,
+                        "published_ports": published_ports,
+                    })
+                    continue
 
-                # 1. host network mode — shares host network stack, not independently addressable
+                # ── host network mode ─────────────────────────────────────────
                 if net_mode == "host":
                     hosts.append(self._make(
                         ip=None, cname=cname, image=image, cstate=cstate,
@@ -166,23 +213,22 @@ class DockerCollector:
                         ports=published_ports,
                         extra={"network_mode": "host", "host_ip": self.host},
                     ))
+                    container_details[cname] = {"ip": None, "cstate": cstate}
                     continue
 
-                # 2. Iterate network attachments
+                # ── Standard network attachments ──────────────────────────────
                 added = False
+                resolved_ip = None
                 for net_name, net_data in net_settings.items():
                     raw_ip = net_data.get("IPAddress", "")
                     net_id = net_data.get("NetworkID", "")
                     ni     = net_info.get(net_id, {})
                     driver = ni.get("driver", "")
 
-                    # Determine if the IP is actually routable on the homelab network,
-                    # or whether it's an internal Docker bridge address (172.17-31.x.x,
-                    # 192.168.x.x docker ranges, etc.)
-                    is_routable_ip = raw_ip and not _is_docker_internal(raw_ip)
+                    is_routable_ip = self._is_routable(raw_ip, driver)
 
                     if is_routable_ip:
-                        # macvlan / ipvlan / overlay with routable address
+                        resolved_ip = raw_ip
                         hosts.append(self._make(
                             ip=raw_ip, cname=cname, image=image, cstate=cstate,
                             cid=cid, network=net_name, driver=driver,
@@ -195,9 +241,6 @@ class DockerCollector:
                         ))
                         added = True
                     else:
-                        # Bridge/internal container — NOT independently addressable.
-                        # Store the host IP in extra so the UI can show "runs on X"
-                        # but don't claim the host IP as the container's own address.
                         hosts.append(self._make(
                             ip=None, cname=cname, image=image, cstate=cstate,
                             cid=cid, network=net_name, driver=driver or "bridge",
@@ -212,20 +255,43 @@ class DockerCollector:
                         ))
                         added = True
 
-                # 3. No routable IP and no published ports — surface without IP
                 if not added:
                     hosts.append(self._make(
                         ip=None, cname=cname, image=image, cstate=cstate,
                         cid=cid, network=net_mode, driver="",
                         ports=[],
-                        extra={
-                            "network_mode":       net_mode,
-                            "internal_bridge_ip": next(
-                                (nd.get("IPAddress","") for nd in net_settings.values()),
-                                "",
-                            ),
-                        },
+                        extra={"network_mode": net_mode},
                     ))
+
+                container_details[cname] = {"ip": resolved_ip, "cstate": cstate}
+
+            # ── Pass 2: resolve service: network_mode containers ─────────────
+            # These containers share their primary's IP. We surface them as
+            # separate rows under that IP with their own ports noted.
+            for p in pending_service:
+                # Docker stores service: references as container ID at runtime,
+                # not as the compose service name. Resolve via id_to_name first.
+                raw_ref = p["primary_name"]
+                resolved_name = container_id_to_name.get(raw_ref, raw_ref)
+                primary = container_details.get(resolved_name, {})
+                primary_ip = primary.get("ip")  # may be None for bridge primaries
+
+                hosts.append(self._make(
+                    ip=primary_ip,
+                    cname=p["cname"],
+                    image=p["image"],
+                    cstate=p["cstate"],
+                    cid=p["cid"],
+                    network=p["net_mode"],
+                    driver="service",
+                    ports=p["published_ports"],
+                    extra={
+                        "network_mode":    p["net_mode"],
+                        "network_driver":  "service",
+                        "service_primary": p["primary_name"],
+                        "primary_ip":      primary_ip or "",
+                    },
+                ))
 
         return hosts
 

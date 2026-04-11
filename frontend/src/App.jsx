@@ -172,8 +172,18 @@ function HostRow({ host, onPing, pingLoading }) {
           <td colSpan={9}>
             <div className={styles.expandedContent}>
               {host.mac && <div><span className={styles.extraLabel}>MAC</span><span className={styles.extraMono}>{host.mac}</span></div>}
+              {host.extra?.service_primary && (
+                <div>
+                  <span className={styles.extraLabel}>NETWORK VIA</span>
+                  <span className={styles.extraMono} style={{ color: '#c084fc' }}>
+                    service:{host.extra.service_primary}
+                    {host.extra.primary_ip ? ` (${host.extra.primary_ip})` : ''}
+                  </span>
+                </div>
+              )}
               {host.extra && Object.entries(host.extra)
-                .filter(([, v]) => v != null && v !== '' && v !== false)
+                .filter(([k, v]) => v != null && v !== '' && v !== false
+                  && k !== 'service_primary' && k !== 'primary_ip')
                 .map(([k, v]) => (
                   <div key={k}>
                     <span className={styles.extraLabel}>{k.replace(/_/g, ' ')}</span>
