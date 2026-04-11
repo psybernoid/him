@@ -17,6 +17,8 @@ from .collectors.proxmox import ProxmoxCollector
 from .collectors.ping import PingChecker
 from .collectors.portscan import scan_ports, COMMON_PORTS
 
+HIM_VERSION = "18"
+
 def _ip_to_int(ip: str) -> int:
     p = ip.split(".")
     return sum(int(x) * (256 ** (3 - i)) for i, x in enumerate(p))
@@ -161,8 +163,17 @@ async def collect_all():
             ip = h.get("ip")
             if not ip:
                 return True   # keep no-IP hosts (stopped VMs, no-port containers)
+            # For containers: if it has bridge_on_host or host network_mode,
+            # the IP is the Docker host's own IP which is already in a known subnet —
+            # pass it through without checking (avoids double-lookup).
+            # For containers with a direct routable IP (macvlan), check normally.
+            # For containers that somehow got an internal bridge IP, filter them out.
             if h.get("type") == "container":
-                return True   # containers are tied to a host already in a known subnet
+                extra = h.get("extra", {})
+                if extra.get("bridge_on_host") or extra.get("network_mode") == "host":
+                    return True   # IP is the Docker host's IP, already routable
+                # Fall through to normal subnet check — macvlan containers should
+                # be in a known subnet; internal bridge IPs (172.16-31.x.x etc) won't be
             for subnet in known_subnets:
                 if _ip_in_subnet(ip, subnet):
                     return True
@@ -217,14 +228,15 @@ async def startup():
 @app.get("/api/hosts")
 async def get_hosts():
     return {
-        "hosts": state["hosts"],
-        "vlans": state["vlans"],
+        "hosts":        state["hosts"],
+        "vlans":        state["vlans"],
         "last_updated": state["last_updated"],
-        "scanning": state["scanning"],
-        "errors": state["errors"],
-        "total": len(state["hosts"]),
-        "online": sum(1 for h in state["hosts"] if h.get("online")),
-        "offline": sum(1 for h in state["hosts"] if h.get("online") is False),
+        "scanning":     state["scanning"],
+        "errors":       state["errors"],
+        "total":        len(state["hosts"]),
+        "online":       sum(1 for h in state["hosts"] if h.get("online")),
+        "offline":      sum(1 for h in state["hosts"] if h.get("online") is False),
+        "version":      HIM_VERSION,
     }
 
 @app.post("/api/refresh")
@@ -466,6 +478,8 @@ async def debug_sources():
         }
         for h in state["hosts"]
     ]
+
+@app.get("/api/settings/test/proxmox/{hid}/debug")
 async def debug_proxmox(hid: int):
     """Raw Proxmox API responses for troubleshooting."""
     hosts = store.get_proxmox_hosts()

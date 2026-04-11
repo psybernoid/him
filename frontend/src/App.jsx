@@ -12,7 +12,7 @@ const TYPE_META = {
   'access-point':  { icon: '◎', label: 'AP',            color: '#3ddc84' },
   'switch':        { icon: '⬢', label: 'Switch',        color: '#3ddc84' },
   'network-device':{ icon: '⬡', label: 'Network',       color: '#3ddc84' },
-  'proxmox-node':  { icon: '▤', label: 'PVE Node',      color: '#ff6b6b' },
+  'proxmox-node':  { icon: '▤', label: 'PVE Node',      color: '#ffb347' },
 }
 
 const SOURCE_COLORS = {
@@ -23,7 +23,7 @@ const SOURCE_COLORS = {
 function sourceColor(src) {
   if (SOURCE_COLORS[src]) return SOURCE_COLORS[src]
   if (src.startsWith('docker:')) return '#c084fc'
-  if (src.startsWith('proxmox:')) return '#ff6b6b'
+  if (src.startsWith('proxmox:')) return '#ffb347'
   return '#6a9a7a'
 }
 
@@ -628,7 +628,7 @@ export default function App() {
       )}
 
       <footer className={styles.footer}>
-        <span>HIM v1.0</span>
+        <span>HIM v{data?.version ?? '17'}</span>
         <span>{filtered.length} / {allHosts.length} hosts displayed</span>
         <span>AUTO-REFRESH 30s</span>
       </footer>

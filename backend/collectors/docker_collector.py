@@ -6,19 +6,32 @@ from typing import List, Dict, Any, Optional
 # Docker default bridge ranges that are internal-only and not routable
 # on the homelab network. Any container IP in these ranges should be
 # treated as "bridge container" and reported under the host IP instead.
-_DOCKER_INTERNAL_PREFIXES = (
-    "172.17.", "172.18.", "172.19.", "172.20.", "172.21.", "172.22.",
-    "172.23.", "172.24.", "172.25.", "172.26.", "172.27.", "172.28.",
-    "172.29.", "172.30.", "172.31.",
-    "192.168.49.",  # minikube
-    "10.96.",       # kubernetes service CIDR
-)
-
 def _is_docker_internal(ip: str) -> bool:
-    """Return True if the IP is in a Docker-internal range (not routable on homelab network)."""
+    """
+    Return True if the IP is in a Docker-internal bridge range and not
+    routable on a typical homelab network.
+
+    Only 172.16.0.0/12 (172.16.x.x – 172.31.x.x) is reliably "Docker only"
+    across all homelab setups. Docker's default bridge is 172.17.0.0/16 and
+    custom bridges are allocated from the rest of 172.16/12.
+
+    We intentionally do NOT mark 10.x.x.x or 192.168.x.x as internal because
+    those are extremely common homelab address ranges for real hosts and macvlan
+    containers. The subnet filter in main.py handles any non-homelab IPs that
+    slip through.
+    """
     if not ip:
         return True
-    return any(ip.startswith(p) for p in _DOCKER_INTERNAL_PREFIXES)
+    try:
+        parts = [int(x) for x in ip.split(".")]
+        if len(parts) != 4:
+            return False
+        # 172.16.0.0/12 = 172.16.x.x through 172.31.x.x
+        if parts[0] == 172 and 16 <= parts[1] <= 31:
+            return True
+    except (ValueError, IndexError):
+        pass
+    return False
 
 
 def _parse_ports(details: dict) -> List[Dict]:
